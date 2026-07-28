@@ -5,6 +5,10 @@ export default defineConfig({
   plugins: [react()],
   server: {
     port: 5173,
-    proxy: { '/calc': 'http://localhost:8000', '/health': 'http://localhost:8000' }
+    proxy: {
+      '/calc': 'http://localhost:8000',
+      '/health': 'http://localhost:8000',
+      '/sentencas': 'http://localhost:8000',
+    }
   }
 })

@@ -1,9 +1,10 @@
 from dataclasses import asdict
-from fastapi import FastAPI
+from fastapi import FastAPI, UploadFile, File, Form, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
 from .schemas import RescisaoIn, RescisaoOut
 from .calc.rescisao import DadosContrato, calcular_rescisao
+from . import sentencas
 
 app = FastAPI(title="PJeCalc Web", version="0.1.0")
 
@@ -32,3 +33,32 @@ def calc_rescisao(inp: RescisaoIn):
         multa_fgts=res.multa_fgts,
         liquido=res.liquido,
     )
+
+
+@app.post("/sentencas/upload")
+async def upload_sentenca(arquivo: UploadFile = File(...)):
+    conteudo = await arquivo.read()
+    if not conteudo:
+        raise HTTPException(400, "Arquivo vazio")
+    texto = sentencas.extrair_texto(arquivo.filename, conteudo)
+    return sentencas.salvar(texto, arquivo.filename, conteudo)
+
+
+@app.post("/sentencas/texto")
+def upload_texto(texto: str = Form(...)):
+    if not texto.strip():
+        raise HTTPException(400, "Texto vazio")
+    return sentencas.salvar(texto)
+
+
+@app.get("/sentencas")
+def listar_sentencas():
+    return sentencas.listar()
+
+
+@app.get("/sentencas/{sid}")
+def ler_sentenca(sid: str):
+    r = sentencas.ler(sid)
+    if not r:
+        raise HTTPException(404, "Não encontrada")
+    return r

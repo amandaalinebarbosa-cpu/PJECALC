@@ -56,6 +56,8 @@ export default function App() {
         </button>
       </form>
 
+      <SentencaUpload />
+
       {res && (
         <div style={{ marginTop: '2rem' }}>
           <h2>Memória de cálculo</h2>
@@ -75,6 +77,57 @@ export default function App() {
             </tbody>
           </table>
         </div>
+      )}
+    </div>
+  )
+}
+
+function SentencaUpload() {
+  const [texto, setTexto] = useState('')
+  const [arquivo, setArquivo] = useState(null)
+  const [msg, setMsg] = useState('')
+  const [lista, setLista] = useState([])
+
+  const refresh = async () => setLista(await (await fetch('/sentencas')).json())
+  React.useEffect(() => { refresh() }, [])
+
+  const enviarArquivo = async (e) => {
+    e.preventDefault()
+    if (!arquivo) return
+    const fd = new FormData(); fd.append('arquivo', arquivo)
+    const r = await fetch('/sentencas/upload', { method: 'POST', body: fd })
+    const j = await r.json()
+    setMsg(`Sentença #${j.id} salva (${j.tamanho_texto} caracteres extraídos)`)
+    setArquivo(null); refresh()
+  }
+  const enviarTexto = async () => {
+    if (!texto.trim()) return
+    const fd = new FormData(); fd.append('texto', texto)
+    const r = await fetch('/sentencas/texto', { method: 'POST', body: fd })
+    const j = await r.json()
+    setMsg(`Sentença #${j.id} salva`)
+    setTexto(''); refresh()
+  }
+
+  return (
+    <div style={{ marginTop: '2rem', padding: '1rem', border: '1px solid #ddd', borderRadius: 6 }}>
+      <h2>Sentença</h2>
+      <form onSubmit={enviarArquivo} style={{ marginBottom: '1rem' }}>
+        <label>Upload de PDF/DOCX/TXT: </label>
+        <input type="file" accept=".pdf,.docx,.txt" onChange={(e) => setArquivo(e.target.files[0])} />
+        <button type="submit" disabled={!arquivo}>Enviar arquivo</button>
+      </form>
+      <div>
+        <label>...ou cole o texto:</label>
+        <textarea value={texto} onChange={(e) => setTexto(e.target.value)} rows={6} style={{ width: '100%' }} />
+        <button onClick={enviarTexto} disabled={!texto.trim()}>Salvar texto</button>
+      </div>
+      {msg && <p style={{ color: 'green' }}>{msg}</p>}
+      {lista.length > 0 && (
+        <>
+          <h3>Sentenças salvas</h3>
+          <ul>{lista.map(s => <li key={s.id}>#{s.id} — {s.criado_em} — {s.nome_original || 'texto colado'}</li>)}</ul>
+        </>
       )}
     </div>
   )
